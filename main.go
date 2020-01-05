@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	argVersion  = flag.Bool("version", false, "Print version")
-	argUsername = flag.String("username", os.Getenv("CIRCLECI_USERNAME"), "CircleCI User Name")
+	argVersion = flag.Bool("version", false, "Print version")
+	// argUsername = flag.String("username", os.Getenv("CIRCLECI_USERNAME"), "CircleCI User Name")
 	// argProject  = flag.String("project", os.Getenv("CIRCLECI_PROJECT"), "Project(Repository) Name")
 	argVcs = flag.String("vcs", "github", "VCS Type [github|bitbacket]")
 )
@@ -71,7 +71,7 @@ func describeProjects(apiEndpoint string) (allVariables [][]string) {
 	jsonBytes := ([]byte)(resp.Body())
 	var ps []Project
 	if err := json.Unmarshal(jsonBytes, &ps); err != nil {
-		fmt.Println(err.Error())
+		fmt.Println("JSON Parse Error. Reason: " + err.Error())
 		os.Exit(1)
 	}
 
@@ -87,7 +87,8 @@ func describeProjects(apiEndpoint string) (allVariables [][]string) {
 		}
 		splitedVcsUrl := strings.Split(p.VcsURL, "/")
 		pjName := splitedVcsUrl[len(splitedVcsUrl)-1]
-		project := []string{pjName, latestBuildNo, latestBuildStatus}
+		orgName := splitedVcsUrl[len(splitedVcsUrl)-2]
+		project := []string{pjName, orgName, latestBuildNo, latestBuildStatus}
 		allProject = append(allProject, project)
 	}
 
@@ -107,7 +108,7 @@ func describeVariables(apiEndpoint string) (allVariables [][]string) {
 	jsonBytes := ([]byte)(resp.Body())
 	var vs []Variable
 	if err := json.Unmarshal(jsonBytes, &vs); err != nil {
-		fmt.Println(err.Error())
+		fmt.Println("JSON Parse Error. Reason: " + err.Error())
 		os.Exit(1)
 	}
 
@@ -161,6 +162,8 @@ func main() {
 	// subcommand `variables`
 	varCommand := flag.NewFlagSet("variables", flag.ExitOnError)
 	varProject := varCommand.String("project", os.Getenv("CIRCLECI_PROJECT"), "Project(Repository) Name")
+	varOrg := varCommand.String("organization", os.Getenv("CIRCLECI_USERNAME"), "Organization(Github User) Name")
+	varVcs := varCommand.String("vcs", "github", "VCS Type [github|bitbacket]")
 	varActAddFlag := varCommand.Bool("add", false, "Add variable")
 	varActDelFlag := varCommand.Bool("del", false, "Delete variable")
 	varNameFlag := varCommand.String("name", "", "Variable Name")
@@ -188,7 +191,7 @@ func main() {
 
 	if varCommand.Parsed() {
 		apiEndpoint := fmt.Sprintf("%s/project/%s/%s/%s/envvar?circle-token=%s",
-			BaseUrl, *argVcs, *argUsername, *varProject, os.Getenv("CIRCLECI_TOKEN"))
+			BaseUrl, *varVcs, *varOrg, *varProject, os.Getenv("CIRCLECI_TOKEN"))
 
 		if *varActAddFlag || *varActDelFlag {
 			if *varNameFlag == "" {
@@ -196,7 +199,7 @@ func main() {
 				return
 			}
 			apiEndpoint := fmt.Sprintf("%s/project/%s/%s/%s/envvar/%s?circle-token=%s",
-				BaseUrl, *argVcs, *argUsername, *varProject, *varNameFlag, os.Getenv("CIRCLECI_TOKEN"))
+				BaseUrl, *varVcs, *varOrg, *varProject, *varNameFlag, os.Getenv("CIRCLECI_TOKEN"))
 			delVariable(apiEndpoint)
 		}
 
@@ -216,7 +219,7 @@ func main() {
 	if prjCommand.Parsed() {
 		apiEndpoint := fmt.Sprintf("%s/projects?circle-token=%s", BaseUrl, os.Getenv("CIRCLECI_TOKEN"))
 		allProject := describeProjects(apiEndpoint)
-		header := []string{"Project Name", "Master Latest Build No", "Master Latest Build Status"}
+		header := []string{"Project Name", "Organization Name", "Master Latest Build No", "Master Latest Build Status"}
 		displyTable(header, allProject)
 	}
 
