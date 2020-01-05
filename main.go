@@ -171,14 +171,15 @@ func main() {
 
 	if len(os.Args) == 1 {
 		fmt.Println("usage: wakka <command> [<args>]")
-		fmt.Println(" variables   Manage Project Environment Variables.")
+		fmt.Println(" variables   Manage Project Environment Variables. (Short: var)")
+		fmt.Println(" projects    List Your Followed Projects. (Short: prj)")
 		return
 	}
 
 	switch os.Args[1] {
-	case "variables":
+	case "variables", "var":
 		varCommand.Parse(os.Args[2:])
-	case "projects":
+	case "projects", "prj":
 		prjCommand.Parse(os.Args[2:])
 	default:
 		fmt.Printf("%q is not valid command.\n", os.Args[1])
